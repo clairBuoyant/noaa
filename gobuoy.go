@@ -1,123 +1,112 @@
 package gobuoy
 
 import (
-	"encoding/json"
-	"encoding/xml"
-	"fmt"
+	"encoding/csv"
 	"io"
 	"log"
 	"net/http"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 )
 
-// Datasets
-const (
-	DATA_SPEC = "data_spec"
-	OCEAN     = "ocean"
-	SPEC      = "spec"
-	SUPL      = "supl"
-	SWDIR     = "swdir"
-	SWDIR2    = "swdir2"
-	SWR1      = "swr1"
-	SWR2      = "swr2"
-	TXT       = "txt"
-)
-
-// Endpoints
-const (
-	ActiveStations = "https://www.ndbc.noaa.gov/activestations"
-	Realtime       = "https://www.ndbc.noaa.gov/data/realtime2"
-)
-
-type Stations struct {
-	XMLName  xml.Name  `xml:"stations"`
-	Stations []Station `xml:"station"`
-}
-
-type Station struct {
-	XMLName      xml.Name `xml:"station"`
-	ID           string   `xml:"id,attr"`
-	Lat          float32  `xml:"lat,attr"`
-	Lon          float32  `xml:"lon,attr"`
-	Name         string   `xml:"name,attr"`
-	Owner        string   `xml:"owner,attr"`
-	Type         string   `xml:"type,attr"`
-	Met          string   `xml:"met,attr"`
-	Currents     string   `xml:"currents,attr"`
-	Waterquality string   `xml:"waterquality,attr"`
-}
-
-type Observation struct {
-	Datetime time.Time `json:"datetime"`
-}
-
-type MeteorologicalObservation struct {
-	Observation
-
-	WindDirection       int16   `json:"wind_direction"`
-	WindSpeed           float32 `json:"wind_speed"`
-	WindGust            float32 `json:"wind_gust"`
-	WaveHeight          float32 `json:"wave_height"`
-	DominantWavePeriod  float32 `json:"dominant_wave_period"`
-	AverageWavePeriod   float32 `json:"average_wave_period"`
-	WaveDirection       int16   `json:"wave_direction"`
-	SeaLevelPressure    float32 `json:"sea_level_pressure"`
-	PressureTendency    float32 `json:"pressure_tendency"`
-	AirTemperature      float32 `json:"air_temperature"`
-	WaterTemperature    float32 `json:"water_temperature"`
-	DewpointTemperature float32 `json:"dewpoint_temperature"`
-	Visibility          float32 `json:"visibility"`
-	Tide                float32 `json:"tide"`
-}
-
-type WaveSummaryObservation struct {
-	Observation
-
-	SignificantWaveHeight float32 `json:"significant_wave_height"`
-	SwellHeight           float32 `json:"swell_height"`
-	SwellPeriod           float32 `json:"swell_period"`
-	WindWaveHeight        float32 `json:"wind_wave_height"`
-	WindWavePeriod        float32 `json:"wind_wave_period"`
-	SwellDirection        string  `json:"swell_direction"`
-	WindWaveDirection     float32 `json:"wind_wave_direction"`
-	Steepness             string  `json:"steepness"`
-	AverageWavePeriod     float32 `json:"average_wave_period"`
-	DominantWaveDirection int16   `json:"dominant_wave_direction"`
-}
-
-// func (s Station) String() string {
-// 	return fmt.Sprintf("(Station id=%s, name=%s, lat=%f, lon=%f)",
-// 		s.ID, s.Name, s.Lat, s.Lon,
-// 	)
-// }
-
-func makeRequest(url string) Stations {
+func request(url string) []byte {
 	response, err := http.Get(url)
 
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	defer response.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}(response.Body)
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	var s Stations
-	if err := xml.Unmarshal(body, &s); err != nil {
-		panic(err)
-	}
-	return s
+	return body
 }
 
-func GetActiveStations() string {
-	url := fmt.Sprintf("%s.%s", ActiveStations, "xml")
+func realtimeMeteorological(url string) []MeteorologicalObservation {
+	body := request(url)
 
-	response := makeRequest(url)
+	r := csv.NewReader(strings.NewReader(string(body)))
+	r.FieldsPerRecord = 0
+	r.TrimLeadingSpace = true
 
-	json, _ := json.Marshal(response)
+	var mos []MeteorologicalObservation
+	for {
+		var mo MeteorologicalObservation
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	return string(json)
+		// TODO: refactor parsing approach
+		row := record[0]
+		trimmed := strings.TrimSpace(row)
+		singleSpacePattern := regexp.MustCompile(`\s+`)
+		rowValues := strings.Split(singleSpacePattern.ReplaceAllString(trimmed, " "), " ")
+
+		year, _ := strconv.ParseInt(rowValues[0], 10, 16)
+		month, _ := strconv.ParseInt(rowValues[1], 10, 16)
+		day, _ := strconv.ParseInt(rowValues[2], 10, 16)
+		hour, _ := strconv.ParseInt(rowValues[3], 10, 16)
+		minute, _ := strconv.ParseInt(rowValues[4], 10, 16)
+		mo.Datetime = time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), 0, 0, time.UTC)
+
+		windDirValue, _ := strconv.ParseFloat(rowValues[5], 32)
+		mo.WindDirection = int16(windDirValue)
+
+		windSpeedValue, _ := strconv.ParseFloat(rowValues[6], 32)
+		mo.WindSpeed = float32(windSpeedValue)
+
+		windGustValue, _ := strconv.ParseFloat(rowValues[7], 32)
+		mo.WindGust = float32(windGustValue)
+
+		waveHeightValue, _ := strconv.ParseFloat(rowValues[8], 32)
+		mo.WaveHeight = float32(waveHeightValue)
+
+		dominantWavePeriodValue, _ := strconv.ParseFloat(rowValues[9], 32)
+		mo.DominantWavePeriod = float32(dominantWavePeriodValue)
+
+		averageWavePeriodValue, _ := strconv.ParseFloat(rowValues[10], 32)
+		mo.AverageWavePeriod = float32(averageWavePeriodValue)
+
+		waveDirectionValue, _ := strconv.ParseFloat(rowValues[11], 32)
+		mo.WaveDirection = int16(waveDirectionValue)
+
+		seaLevelPresValue, _ := strconv.ParseFloat(rowValues[12], 32)
+		mo.SeaLevelPressure = float32(seaLevelPresValue)
+
+		airTempValue, _ := strconv.ParseFloat(rowValues[13], 32)
+		mo.AirTemperature = float32(airTempValue)
+
+		waterTempValue, _ := strconv.ParseFloat(rowValues[14], 32)
+		mo.WaterTemperature = float32(waterTempValue)
+
+		dewpointTempValue, _ := strconv.ParseFloat(rowValues[15], 32)
+		mo.DewpointTemperature = float32(dewpointTempValue)
+
+		visibilityValue, _ := strconv.ParseFloat(rowValues[16], 32)
+		mo.Visibility = float32(visibilityValue)
+
+		pressureTendencyVal, _ := strconv.ParseFloat(rowValues[17], 32)
+		mo.PressureTendency = float32(pressureTendencyVal)
+
+		tideVal, _ := strconv.ParseFloat(rowValues[18], 32)
+		mo.Tide = float32(tideVal)
+
+		mos = append(mos, mo)
+	}
+	return mos
 }
