@@ -1,3 +1,3 @@
-# gobuoy
+# noaa
 
-`gobuoy` is a Go module that was built to facilitate rapid discovery of new data from [NDBC](https://www.ndbc.noaa.gov/).
+`noaa` is a Go package that was built to facilitate rapid discovery of new data from [NOAA](https://www.noaa.gov) and [NDBC](https://www.ndbc.noaa.gov).

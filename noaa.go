@@ -1,4 +1,4 @@
-package gobuoy
+package noaa
 
 import (
 	"encoding/csv"
