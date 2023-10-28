@@ -42,7 +42,6 @@ func realtimeMeteorological(url string) []MeteorologicalObservation {
 
 	var mos []MeteorologicalObservation
 	for {
-		var mo MeteorologicalObservation
 		record, err := r.Read()
 		if err == io.EOF {
 			break
@@ -51,62 +50,56 @@ func realtimeMeteorological(url string) []MeteorologicalObservation {
 			log.Fatal(err)
 		}
 
-		// TODO: refactor parsing approach
-		row := record[0]
-		trimmed := strings.TrimSpace(row)
-		singleSpacePattern := regexp.MustCompile(`\s+`)
-		rowValues := strings.Split(singleSpacePattern.ReplaceAllString(trimmed, " "), " ")
-
-		year, _ := strconv.ParseInt(rowValues[0], 10, 16)
-		month, _ := strconv.ParseInt(rowValues[1], 10, 16)
-		day, _ := strconv.ParseInt(rowValues[2], 10, 16)
-		hour, _ := strconv.ParseInt(rowValues[3], 10, 16)
-		minute, _ := strconv.ParseInt(rowValues[4], 10, 16)
-		mo.Datetime = time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), 0, 0, time.UTC)
-
-		windDirValue, _ := strconv.ParseFloat(rowValues[5], 32)
-		mo.WindDirection = int16(windDirValue)
-
-		windSpeedValue, _ := strconv.ParseFloat(rowValues[6], 32)
-		mo.WindSpeed = float32(windSpeedValue)
-
-		windGustValue, _ := strconv.ParseFloat(rowValues[7], 32)
-		mo.WindGust = float32(windGustValue)
-
-		waveHeightValue, _ := strconv.ParseFloat(rowValues[8], 32)
-		mo.WaveHeight = float32(waveHeightValue)
-
-		dominantWavePeriodValue, _ := strconv.ParseFloat(rowValues[9], 32)
-		mo.DominantWavePeriod = float32(dominantWavePeriodValue)
-
-		averageWavePeriodValue, _ := strconv.ParseFloat(rowValues[10], 32)
-		mo.AverageWavePeriod = float32(averageWavePeriodValue)
-
-		waveDirectionValue, _ := strconv.ParseFloat(rowValues[11], 32)
-		mo.WaveDirection = int16(waveDirectionValue)
-
-		seaLevelPresValue, _ := strconv.ParseFloat(rowValues[12], 32)
-		mo.SeaLevelPressure = float32(seaLevelPresValue)
-
-		airTempValue, _ := strconv.ParseFloat(rowValues[13], 32)
-		mo.AirTemperature = float32(airTempValue)
-
-		waterTempValue, _ := strconv.ParseFloat(rowValues[14], 32)
-		mo.WaterTemperature = float32(waterTempValue)
-
-		dewpointTempValue, _ := strconv.ParseFloat(rowValues[15], 32)
-		mo.DewpointTemperature = float32(dewpointTempValue)
-
-		visibilityValue, _ := strconv.ParseFloat(rowValues[16], 32)
-		mo.Visibility = float32(visibilityValue)
-
-		pressureTendencyVal, _ := strconv.ParseFloat(rowValues[17], 32)
-		mo.PressureTendency = float32(pressureTendencyVal)
-
-		tideVal, _ := strconv.ParseFloat(rowValues[18], 32)
-		mo.Tide = float32(tideVal)
-
-		mos = append(mos, mo)
+		mos = append(mos, parseMeteorologicalObservation(record))
 	}
 	return mos
+}
+
+func parseMeteorologicalObservation(record []string) MeteorologicalObservation {
+	mo := MeteorologicalObservation{}
+
+	row := record[0]
+	trimmed := strings.TrimSpace(row)
+	singleSpacePattern := regexp.MustCompile(`\s+`)
+	rowValues := strings.Split(singleSpacePattern.ReplaceAllString(trimmed, " "), " ")
+
+	year, _ := strconv.ParseInt(rowValues[0], 10, 16)
+	month, _ := strconv.ParseInt(rowValues[1], 10, 16)
+	day, _ := strconv.ParseInt(rowValues[2], 10, 16)
+	hour, _ := strconv.ParseInt(rowValues[3], 10, 16)
+	minute, _ := strconv.ParseInt(rowValues[4], 10, 16)
+
+	mo.Datetime = time.Date(int(year), time.Month(month), int(day), int(hour), int(minute), 0, 0, time.UTC)
+	mo.WindDirection = parseInt16(rowValues[5])
+	mo.WindSpeed = parseFloat32(rowValues[6])
+	mo.WindGust = parseFloat32(rowValues[7])
+	mo.WaveHeight = parseFloat32(rowValues[8])
+	mo.DominantWavePeriod = parseFloat32(rowValues[9])
+	mo.AverageWavePeriod = parseFloat32(rowValues[10])
+	mo.WaveDirection = parseInt16(rowValues[11])
+	mo.SeaLevelPressure = parseFloat32(rowValues[12])
+	mo.AirTemperature = parseFloat32(rowValues[13])
+	mo.WaterTemperature = parseFloat32(rowValues[14])
+	mo.DewpointTemperature = parseFloat32(rowValues[15])
+	mo.Visibility = parseFloat32(rowValues[16])
+	mo.PressureTendency = parseFloat32(rowValues[17])
+	mo.Tide = parseFloat32(rowValues[18])
+
+	return mo
+}
+
+func parseInt16(value string) int16 {
+	i, err := strconv.ParseInt(value, 10, 16)
+	if err != nil {
+		return 0
+	}
+	return int16(i)
+}
+
+func parseFloat32(value string) float32 {
+	f64, err := strconv.ParseFloat(value, 32)
+	if err != nil {
+		return 0.0
+	}
+	return float32(f64)
 }

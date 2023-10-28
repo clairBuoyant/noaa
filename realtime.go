@@ -31,21 +31,21 @@ const (
 )
 
 type MeteorologicalObservation struct {
-	Datetime            time.Time `json:"datetime"`
-	WindDirection       int16     `json:"wind_direction"`
-	WindSpeed           float32   `json:"wind_speed"`
-	WindGust            float32   `json:"wind_gust"`
-	WaveHeight          float32   `json:"wave_height"`
-	DominantWavePeriod  float32   `json:"dominant_wave_period"`
-	AverageWavePeriod   float32   `json:"average_wave_period"`
-	WaveDirection       int16     `json:"wave_direction"`
-	SeaLevelPressure    float32   `json:"sea_level_pressure"`
-	PressureTendency    float32   `json:"pressure_tendency"`
-	AirTemperature      float32   `json:"air_temperature"`
-	WaterTemperature    float32   `json:"water_temperature"`
-	DewpointTemperature float32   `json:"dewpoint_temperature"`
-	Visibility          float32   `json:"visibility"`
-	Tide                float32   `json:"tide"`
+	Datetime            time.Time `csv:"datetime" json:"datetime"`
+	WindDirection       int16     `csv:"wind_direction" json:"wind_direction"`
+	WindSpeed           float32   `csv:"wind_speed" json:"wind_speed"`
+	WindGust            float32   `csv:"wind_gust" json:"wind_gust"`
+	WaveHeight          float32   `csv:"wave_height" json:"wave_height"`
+	DominantWavePeriod  float32   `csv:"dominant_wave_period" json:"dominant_wave_period"`
+	AverageWavePeriod   float32   `csv:"average_wave_period" json:"average_wave_period"`
+	WaveDirection       int16     `csv:"wave_direction" json:"wave_direction"`
+	SeaLevelPressure    float32   `csv:"sea_level_pressure" json:"sea_level_pressure"`
+	PressureTendency    float32   `csv:"pressure_tendency" json:"pressure_tendency"`
+	AirTemperature      float32   `csv:"air_temperature" json:"air_temperature"`
+	WaterTemperature    float32   `csv:"water_temperature" json:"water_temperature"`
+	DewpointTemperature float32   `csv:"dewpoint_temperature" json:"dewpoint_temperature"`
+	Visibility          float32   `csv:"visibility" json:"visibility"`
+	Tide                float32   `csv:"tide" json:"tide"`
 }
 
 type WaveSummaryObservation struct {
