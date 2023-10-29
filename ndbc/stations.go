@@ -1,9 +1,10 @@
-package noaa
+package ndbc
 
 import (
 	"encoding/json"
 	"encoding/xml"
-	"fmt"
+
+	r "github.com/clairBuoyant/noaa/internal/request"
 )
 
 type Stations struct {
@@ -24,16 +25,8 @@ type Station struct {
 	WaterQuality string   `xml:"waterquality,attr"`
 }
 
-// func (s Station) String() string {
-// 	return fmt.Sprintf("(Station id=%s, name=%s, lat=%f, lon=%f)",
-// 		s.ID, s.Name, s.Lat, s.Lon,
-// 	)
-// }
-
 func GetActiveStations() string {
-	url := fmt.Sprintf("%s.%s", ActiveStations, "xml")
-
-	response := request(url)
+	response := r.Request(ActiveStations)
 
 	var activeStations Stations
 	if err := xml.Unmarshal(response, &activeStations); err != nil {

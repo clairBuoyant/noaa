@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
-
-	ndbc "github.com/clairBuoyant/noaa"
+	"log"
 )
 
 func main() {
-	fmt.Println(ndbc.GetRealtime("44065"))
+	log.Fatalln("Not Implemented")
 }
