@@ -122,11 +122,6 @@ func (c *client) ActiveStations() (ndbc.Stations, error) {
 }
 
 // TODO: work with []ndbc.MeteorologicalObservation
-func (c *client) Realtime(id string) (ndbc.MeteorologicalObservation, error) {
-	url := fmt.Sprintf("%s/%s.%s", ndbc.Realtime, id, ndbc.TXT)
-
-	var mos ndbc.MeteorologicalObservation
-	err := c.get(context.Background(), url, &mos)
-
-	return mos, err
+func (c *client) Realtime(id string) string {
+	return GetRealtime(id)
 }
